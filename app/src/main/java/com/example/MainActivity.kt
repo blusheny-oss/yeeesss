@@ -108,8 +108,22 @@ fun AppNavigation() {
         }
     }
 
+    val googleConfigured = remember(context) {
+        runCatching { context.getString(R.string.default_web_client_id) }
+            .getOrDefault("")
+            .startsWith("000000000000")
+            .not()
+    }
+
     val user = currentUser
-    if (user == null) {
+    if (user == null && !googleConfigured) {
+        key("local-user") {
+            AuthenticatedMainApp(
+                currentUserId = "local-user",
+                onSignOut = {},
+            )
+        }
+    } else if (user == null) {
         AuthScreen(onAuthSuccess = {})
     } else {
         key(user.uid) {
