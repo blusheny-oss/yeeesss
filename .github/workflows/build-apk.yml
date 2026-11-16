@@ -20,16 +20,23 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Android SDK setup
+        uses: android-actions/setup-android@v3
+
+      - name: SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platform-tools" || true
+          sdkmanager --install "platforms;android-36" || true
+          sdkmanager --install "build-tools;36.0.0" || true
+          sdkmanager --install "platforms;android-36.1" || true
+          echo "--- installed ---"
+          sdkmanager --list_installed | head -50
+
       - name: Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
-
-      - name: Android SDK
-        continue-on-error: true
-        run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" > /dev/null || true
 
       - name: Keystore
         run: |
@@ -40,11 +47,25 @@ jobs:
             -dname "CN=AktZhilya, O=Studio, C=RU"
 
       - name: Build release
+        shell: bash
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: aktzhilya2026
           KEY_PASSWORD: aktzhilya2026
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Show errors
+        if: failure()
+        shell: bash
+        run: |
+          echo "=== key lines ==="
+          grep -nE "error:|^e: |Caused by|FAILURE|What went wrong|Could not|Unresolved|Failed to" build.log | tail -25 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+          echo "=== tail ==="
+          tail -40 build.log
 
       - name: Collect apk
         run: |
