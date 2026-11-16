@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">АктЖилья</string>
+    <string name="default_web_client_id">000000000000-placeholder.apps.googleusercontent.com</string>
 </resources>
