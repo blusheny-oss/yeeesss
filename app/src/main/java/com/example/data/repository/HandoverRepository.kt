@@ -1,4 +1,4 @@
-package com.example.data.repository
+﻿package com.example.data.repository
 
 import android.content.Context
 import com.example.R
@@ -39,11 +39,7 @@ class HandoverRepository(
 
     private fun requireUserId(): String {
         // Работаем и без входа через Google: данные остаются на устройстве.
-        return auth.currentUser?.uid ?: LOCAL_USER_ID
-    }
-
-    companion object {
-        const val LOCAL_USER_ID = "local-user"
+        return auth.currentUser?.uid ?: "local-user"
     }
 
     private fun actsCollection(uid: String) =
