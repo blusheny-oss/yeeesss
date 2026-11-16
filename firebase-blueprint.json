@@ -1,0 +1,302 @@
+{
+  "entities": {
+    "HandoverAct": {
+      "title": "HandoverAct",
+      "description": "Digital apartment handover and inspection act protecting tenant and landlord deposit.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Short property or inspection title"
+        },
+        "address": {
+          "type": "string",
+          "description": "Full apartment address"
+        },
+        "apartmentNumber": {
+          "type": "string",
+          "description": "Apartment or unit number"
+        },
+        "depositAmountRub": {
+          "type": "integer",
+          "description": "Security deposit amount in RUB"
+        },
+        "monthlyRentRub": {
+          "type": "integer",
+          "description": "Monthly rent amount in RUB"
+        },
+        "creatorRole": {
+          "type": "string",
+          "enum": ["tenant", "landlord"],
+          "description": "Role of the user creating the act"
+        },
+        "landlordName": {
+          "type": "string",
+          "description": "Landlord full name"
+        },
+        "landlordPhone": {
+          "type": "string",
+          "description": "Landlord phone number"
+        },
+        "tenantName": {
+          "type": "string",
+          "description": "Tenant full name"
+        },
+        "tenantPhone": {
+          "type": "string",
+          "description": "Tenant phone number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "pending_counterparty", "signed"],
+          "description": "Lifecycle status of the handover act"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "GPS latitude at creation or capture"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "GPS longitude at creation or capture"
+        },
+        "locationLabel": {
+          "type": "string",
+          "description": "Human-readable GPS/address stamp"
+        },
+        "coldWaterMeter": {
+          "type": "string",
+          "description": "Cold water meter reading"
+        },
+        "hotWaterMeter": {
+          "type": "string",
+          "description": "Hot water meter reading"
+        },
+        "electricityMeter": {
+          "type": "string",
+          "description": "Electricity meter reading"
+        },
+        "gasMeter": {
+          "type": "string",
+          "description": "Gas meter reading"
+        },
+        "photosCount": {
+          "type": "integer",
+          "description": "Total captured live photos count"
+        },
+        "defectsCount": {
+          "type": "integer",
+          "description": "Total logged defects count"
+        },
+        "creatorSignedAtMillis": {
+          "type": "integer",
+          "description": "Epoch millis when creator signed with SMS code"
+        },
+        "creatorSmsCodeHash": {
+          "type": "string",
+          "description": "SHA-256 verification digest of creator SMS signature"
+        },
+        "counterpartyConfirmed": {
+          "type": "boolean",
+          "description": "Whether counterparty confirmed the act"
+        },
+        "counterpartyName": {
+          "type": "string",
+          "description": "Name of confirming counterparty"
+        },
+        "counterpartyPhone": {
+          "type": "string",
+          "description": "Phone of confirming counterparty"
+        },
+        "counterpartySignedAtMillis": {
+          "type": "integer",
+          "description": "Epoch millis when counterparty confirmed"
+        },
+        "counterpartySmsCodeHash": {
+          "type": "string",
+          "description": "SHA-256 verification digest of counterparty SMS signature"
+        },
+        "shareToken": {
+          "type": "string",
+          "description": "Verification share code for counterparty confirmation link"
+        },
+        "selectedPlan": {
+          "type": "string",
+          "enum": ["single_act", "b2b_pro"],
+          "description": "Selected billing tier for this act"
+        },
+        "pdfGenerated": {
+          "type": "boolean",
+          "description": "Whether legal PDF has been generated"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation (FieldValue.serverTimestamp())"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update (FieldValue.serverTimestamp())"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "address",
+        "depositAmountRub",
+        "monthlyRentRub",
+        "creatorRole",
+        "status",
+        "photosCount",
+        "defectsCount",
+        "creatorSignedAtMillis",
+        "counterpartyConfirmed",
+        "counterpartySignedAtMillis",
+        "selectedPlan",
+        "pdfGenerated",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChecklistItem": {
+      "title": "ChecklistItem",
+      "description": "Room/surface checklist inspection item with live camera photo proof and GPS metadata.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID"
+        },
+        "actId": {
+          "type": "string",
+          "description": "Parent handover act document ID"
+        },
+        "zone": {
+          "type": "string",
+          "description": "Inspection zone name"
+        },
+        "title": {
+          "type": "string",
+          "description": "Checklist item title"
+        },
+        "condition": {
+          "type": "string",
+          "enum": ["pending", "ok", "defect", "note"],
+          "description": "Condition evaluation"
+        },
+        "comment": {
+          "type": "string",
+          "description": "Inspector notes or defect description"
+        },
+        "photoLocalPath": {
+          "type": "string",
+          "description": "App-private file path of live camera capture"
+        },
+        "photoCapturedAtIso": {
+          "type": "string",
+          "description": "ISO timestamp when photo was captured"
+        },
+        "photoLat": {
+          "type": "number",
+          "description": "GPS latitude at photo capture"
+        },
+        "photoLng": {
+          "type": "number",
+          "description": "GPS longitude at photo capture"
+        },
+        "photoSha256": {
+          "type": "string",
+          "description": "SHA-256 hash of captured photo bytes"
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Ordering index in checklist"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation (FieldValue.serverTimestamp())"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update (FieldValue.serverTimestamp())"
+        }
+      },
+      "required": [
+        "userId",
+        "actId",
+        "zone",
+        "title",
+        "condition",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPlanSettings": {
+      "title": "UserPlanSettings",
+      "description": "User tariff plan and B2B realtor agency settings.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID"
+        },
+        "planType": {
+          "type": "string",
+          "enum": ["pay_per_act", "b2b_pro"],
+          "description": "Active tariff plan"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Optional realtor or management company name"
+        },
+        "actsGeneratedCount": {
+          "type": "integer",
+          "description": "Count of generated PDF acts"
+        },
+        "b2bActive": {
+          "type": "boolean",
+          "description": "Whether B2B subscription is active"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update"
+        }
+      },
+      "required": [
+        "userId",
+        "planType",
+        "actsGeneratedCount",
+        "b2bActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/acts/{actId}": {
+      "schema": { "$ref": "#/entities/HandoverAct" },
+      "description": "User-owned apartment handover acts"
+    },
+    "/users/{userId}/acts/{actId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/ChecklistItem" },
+      "description": "Inspection checklist items under a handover act"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/UserPlanSettings" },
+      "description": "User tariff and B2B subscription preferences"
+    }
+  }
+}

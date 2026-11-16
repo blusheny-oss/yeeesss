@@ -1,0 +1,239 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOptionalStr(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isOptionalNum(data, field) {
+      return !(field in data) || data[field] is number;
+    }
+
+    function isValidHandoverAct(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.address is string && data.address.size() >= 1 && data.address.size() <= 240 &&
+             isOptionalStr(data, 'apartmentNumber', 40) &&
+             data.depositAmountRub is int && data.depositAmountRub >= 0 && data.depositAmountRub <= 100000000 &&
+             data.monthlyRentRub is int && data.monthlyRentRub >= 0 && data.monthlyRentRub <= 100000000 &&
+             data.creatorRole is string && data.creatorRole in ['tenant', 'landlord'] &&
+             isOptionalStr(data, 'landlordName', 120) &&
+             isOptionalStr(data, 'landlordPhone', 32) &&
+             isOptionalStr(data, 'tenantName', 120) &&
+             isOptionalStr(data, 'tenantPhone', 32) &&
+             data.status is string && data.status in ['draft', 'pending_counterparty', 'signed'] &&
+             isOptionalNum(data, 'latitude') &&
+             isOptionalNum(data, 'longitude') &&
+             isOptionalStr(data, 'locationLabel', 200) &&
+             isOptionalStr(data, 'coldWaterMeter', 40) &&
+             isOptionalStr(data, 'hotWaterMeter', 40) &&
+             isOptionalStr(data, 'electricityMeter', 40) &&
+             isOptionalStr(data, 'gasMeter', 40) &&
+             data.photosCount is int && data.photosCount >= 0 && data.photosCount <= 500 &&
+             data.defectsCount is int && data.defectsCount >= 0 && data.defectsCount <= 500 &&
+             data.creatorSignedAtMillis is int && data.creatorSignedAtMillis >= 0 &&
+             isOptionalStr(data, 'creatorSmsCodeHash', 128) &&
+             data.counterpartyConfirmed is bool &&
+             isOptionalStr(data, 'counterpartyName', 120) &&
+             isOptionalStr(data, 'counterpartyPhone', 32) &&
+             data.counterpartySignedAtMillis is int && data.counterpartySignedAtMillis >= 0 &&
+             isOptionalStr(data, 'counterpartySmsCodeHash', 128) &&
+             isOptionalStr(data, 'shareToken', 64) &&
+             data.selectedPlan is string && data.selectedPlan in ['single_act', 'b2b_pro'] &&
+             data.pdfGenerated is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChecklistItem(data, expectedActId) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.actId is string && data.actId == expectedActId &&
+             data.zone is string && data.zone.size() >= 1 && data.zone.size() <= 80 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             data.condition is string && data.condition in ['pending', 'ok', 'defect', 'note'] &&
+             isOptionalStr(data, 'comment', 500) &&
+             isOptionalStr(data, 'photoLocalPath', 400) &&
+             isOptionalStr(data, 'photoCapturedAtIso', 64) &&
+             isOptionalNum(data, 'photoLat') &&
+             isOptionalNum(data, 'photoLng') &&
+             isOptionalStr(data, 'photoSha256', 128) &&
+             data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 500 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserPlanSettings(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.planType is string && data.planType in ['pay_per_act', 'b2b_pro'] &&
+             isOptionalStr(data, 'companyName', 120) &&
+             data.actsGeneratedCount is int && data.actsGeneratedCount >= 0 && data.actsGeneratedCount <= 100000 &&
+             data.b2bActive is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/acts/{actId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(actId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(actId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'address', 'depositAmountRub', 'monthlyRentRub',
+                         'creatorRole', 'status', 'photosCount', 'defectsCount',
+                         'creatorSignedAtMillis', 'counterpartyConfirmed', 'counterpartySignedAtMillis',
+                         'selectedPlan', 'pdfGenerated', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'address', 'apartmentNumber', 'depositAmountRub', 'monthlyRentRub',
+                         'creatorRole', 'landlordName', 'landlordPhone', 'tenantName', 'tenantPhone',
+                         'status', 'latitude', 'longitude', 'locationLabel',
+                         'coldWaterMeter', 'hotWaterMeter', 'electricityMeter', 'gasMeter',
+                         'photosCount', 'defectsCount', 'creatorSignedAtMillis', 'creatorSmsCodeHash',
+                         'counterpartyConfirmed', 'counterpartyName', 'counterpartyPhone',
+                         'counterpartySignedAtMillis', 'counterpartySmsCodeHash', 'shareToken',
+                         'selectedPlan', 'pdfGenerated', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().status in ['draft', 'pending_counterparty'] &&
+                       incoming().counterpartyConfirmed == false &&
+                       isValidHandoverAct(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(actId) &&
+                       isValidHandoverAct(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       existing().status != 'signed' && (
+                         // Action 1: Edit act details, meters, location, counters, or PDF flag while unsigned
+                         (
+                           incoming().status in ['draft', 'pending_counterparty'] &&
+                           incoming().creatorSignedAtMillis == existing().creatorSignedAtMillis &&
+                           incoming().counterpartyConfirmed == false &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'title', 'address', 'apartmentNumber', 'depositAmountRub', 'monthlyRentRub',
+                             'creatorRole', 'landlordName', 'landlordPhone', 'tenantName', 'tenantPhone',
+                             'status', 'latitude', 'longitude', 'locationLabel',
+                             'coldWaterMeter', 'hotWaterMeter', 'electricityMeter', 'gasMeter',
+                             'photosCount', 'defectsCount', 'shareToken', 'selectedPlan', 'pdfGenerated', 'updatedAt'
+                           ])
+                         ) ||
+                         // Action 2: Creator signs with SMS verification code
+                         (
+                           incoming().status == 'pending_counterparty' &&
+                           incoming().creatorSignedAtMillis > 0 &&
+                           incoming().creatorSmsCodeHash is string &&
+                           incoming().creatorSmsCodeHash.size() >= 8 &&
+                           incoming().counterpartyConfirmed == false &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'status', 'creatorSignedAtMillis', 'creatorSmsCodeHash', 'shareToken', 'pdfGenerated', 'updatedAt'
+                           ])
+                         ) ||
+                         // Action 3: Counterparty confirms with SMS code (terminal signed state)
+                         (
+                           existing().creatorSignedAtMillis > 0 &&
+                           incoming().status == 'signed' &&
+                           incoming().counterpartyConfirmed == true &&
+                           incoming().counterpartySignedAtMillis > 0 &&
+                           incoming().counterpartySmsCodeHash is string &&
+                           incoming().counterpartySmsCodeHash.size() >= 8 &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'status', 'counterpartyConfirmed', 'counterpartyName', 'counterpartyPhone',
+                             'counterpartySignedAtMillis', 'counterpartySmsCodeHash', 'pdfGenerated', 'updatedAt'
+                           ])
+                         )
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(actId) && existing().status != 'signed';
+
+      match /items/{itemId} {
+        allow list: if isOwner(userId) && isValidId(actId);
+        allow get: if isOwner(userId) && isValidId(actId) && isValidId(itemId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(actId) &&
+                         isValidId(itemId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'actId', 'zone', 'title', 'condition', 'sortOrder', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'actId', 'zone', 'title', 'condition', 'comment',
+                           'photoLocalPath', 'photoCapturedAtIso', 'photoLat', 'photoLng', 'photoSha256',
+                           'sortOrder', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidChecklistItem(incoming(), actId) &&
+                         exists(/databases/$(database)/documents/users/$(userId)/acts/$(actId)) &&
+                         get(/databases/$(database)/documents/users/$(userId)/acts/$(actId)).data.status != 'signed';
+
+        allow update: if isOwner(userId) &&
+                         isValidId(actId) &&
+                         isValidId(itemId) &&
+                         isValidChecklistItem(incoming(), actId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().actId == existing().actId &&
+                         incoming().createdAt == existing().createdAt &&
+                         get(/databases/$(database)/documents/users/$(userId)/acts/$(actId)).data.status != 'signed' &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'zone', 'title', 'condition', 'comment',
+                           'photoLocalPath', 'photoCapturedAtIso', 'photoLat', 'photoLng', 'photoSha256',
+                           'sortOrder', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) &&
+                         isValidId(actId) &&
+                         isValidId(itemId) &&
+                         get(/databases/$(database)/documents/users/$(userId)/acts/$(actId)).data.status != 'signed';
+      }
+    }
+
+    match /users/{userId}/settings/{settingId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(settingId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'planType', 'actsGeneratedCount', 'b2bActive', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'planType', 'companyName', 'actsGeneratedCount', 'b2bActive', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserPlanSettings(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       isValidUserPlanSettings(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'planType', 'companyName', 'actsGeneratedCount', 'b2bActive', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(settingId);
+    }
+  }
+}
